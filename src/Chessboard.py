@@ -1,6 +1,7 @@
 from bitarray import bitarray
-from enum import Enum, unique
+from enum import Enum, unique, auto
 import math
+from ExtendedBitArray import ExtendedBitArray as ebs
 
 
 class Chessboard:
@@ -10,11 +11,13 @@ class Chessboard:
         self._rows = rows
         self._columns = columns
         self._num_of_spaces = rows * columns
-        self._board = bitarray(self._num_of_spaces)
+        self._board = ebs(self._num_of_spaces)
         self._board.setall(0)
 
         self._location = {}
         self._rules = {}
+
+        self._generate_psuedo_attacks()
 
     def add_piece(self, position_index, piece):
         try:
@@ -50,7 +53,6 @@ class Chessboard:
                 raise ValueError("Invalid Location")
             else:
                 index = self._num_of_spaces - (position_index -1)
-                print(index)
                 return math.ceil(index / self._columns)
         except ValueError:
             raise
@@ -79,8 +81,20 @@ class Chessboard:
         self._generate_king_pseudo_attacks()
 
     def _generate_pawn_pseudo_attacks(self):
-        pawn_psuedo_attacks = bitarray(self._num_of_spaces)
+        pawn_psuedo_attacks = ebs(self._num_of_spaces)
 
+        for x in range(1, self._num_of_spaces + 1):
+            pawn_psuedo_attacks.setall(0)
+
+            if self.row(x) == 1:
+                self._rules[(Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks
+            else:
+                if not self.column(x) == 1:
+                    pawn_psuedo_attacks[x + self._columns - 2] = True
+                if not self.column(x) == self._columns:
+                    pawn_psuedo_attacks[x + self._columns ] = True
+                    pass
+                self._rules[(Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks.copy()
 
         pass
 
@@ -101,13 +115,18 @@ class Chessboard:
 
 @unique
 class Piece(Enum):
-    BISHOP = 1
-    KING = 2
-    KNIGHT = 3
-    ROOK = 4
-    PAWN = 5
-    QUEEN = 6
+    BISHOP = auto()
+    KING = auto()
+    KNIGHT = auto()
+    ROOK = auto()
+    PAWN = auto()
+    QUEEN = auto()
 
+@unique
+class Rules(Enum):
+    PSEUDO_ATTACKS = auto()
 
+board = Chessboard()
 
-
+for k,v in board._rules.items():
+    print (k[1].name, k[2], v)
