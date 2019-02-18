@@ -1,5 +1,6 @@
 from bitarray import bitarray
 from enum import Enum, unique
+import math
 
 
 class Chessboard:
@@ -13,8 +14,7 @@ class Chessboard:
         self._board.setall(0)
 
         self._location = {}
-
-        self._last_square_bit = 2**(self._num_of_spaces - 1)
+        self._rules = {}
 
     def add_piece(self, position_index, piece):
         try:
@@ -44,11 +44,25 @@ class Chessboard:
         for k,v in self._location.items():
             print(v.name, "at position", k)
 
-    def getRow(self,position_index):
-        if self._valid_board_space(position_index):
-            return ((position_index-1) % self._rows) +1
-        else:
-            print("Invalid Location")
+    def row(self, position_index):
+        try:
+            if not self._valid_board_space(position_index):
+                raise ValueError("Invalid Location")
+            else:
+                index = self._num_of_spaces - (position_index -1)
+                print(index)
+                return math.ceil(index / self._columns)
+        except ValueError:
+            raise
+
+    def column(self, position_index):
+        try:
+            if not self._valid_board_space(position_index):
+                raise ValueError("Invalid Location")
+            else:
+                return ((position_index-1) % self._columns) +1
+        except ValueError:
+            raise
 
     def _valid_board_space(self, position_index):
         if position_index > 0 and position_index <= self._num_of_spaces:
@@ -65,6 +79,9 @@ class Chessboard:
         self._generate_king_pseudo_attacks()
 
     def _generate_pawn_pseudo_attacks(self):
+        pawn_psuedo_attacks = bitarray(self._num_of_spaces)
+
+
         pass
 
     def _generate_knight_pseudo_attacks(self):
@@ -91,13 +108,6 @@ class Piece(Enum):
     PAWN = 5
     QUEEN = 6
 
-board = Chessboard(4, 3)
 
-board.add_piece(4, Piece.BISHOP)
-board.add_piece(1, Piece.KNIGHT)
-board.add_piece(3, Piece.QUEEN)
-board.add_piece(9, Piece.ROOK)
-board.print_pieces()
-board.print_board()
 
 
