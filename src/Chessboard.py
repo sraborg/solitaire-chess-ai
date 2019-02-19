@@ -96,10 +96,33 @@ class Chessboard:
                     pass
                 self._rules[(Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks.copy()
 
-        pass
-
     def _generate_knight_pseudo_attacks(self):
-        pass
+        knight_psuedo_attacks = ebs(self._num_of_spaces)
+
+        for x in range(1, self._num_of_spaces + 1):
+            knight_psuedo_attacks.setall(0)
+
+            if not self.row(x) == 1:
+                if self.column(x) > 2:
+                    knight_psuedo_attacks[x + self._columns - 3] = True
+                if self.column(x) < (self._columns - 1):
+                    knight_psuedo_attacks[x + self._columns + 1] = True
+                if not self.row(x) == 2:
+                    if not self.column(x) == 1:
+                        knight_psuedo_attacks[x + 2*self._columns + -2] = True
+                    if not self.column(x) == self._columns:
+                        knight_psuedo_attacks[x + 2*self._columns] = True
+            if not self.row(x) == self._rows:
+                if self.column(x) > 2:
+                    knight_psuedo_attacks[x - self._columns - 3] = True
+                if self.column(x) < (self._columns - 1):
+                    knight_psuedo_attacks[x - self._columns + 1] = True
+                if not self.row(x) == (self._rows -1):
+                    if not self.column(x) == 1:
+                        knight_psuedo_attacks[x - 2 * self._columns + -2] = True
+                    if not self.column(x) == self._columns:
+                        knight_psuedo_attacks[x - 2 * self._columns] = True
+            self._rules[(Rules.PSEUDO_ATTACKS, Piece.KNIGHT, x)] = knight_psuedo_attacks.copy()
 
     def _generate_rook_pseudo_attacks(self):
         pass
