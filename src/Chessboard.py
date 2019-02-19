@@ -33,6 +33,22 @@ class Chessboard:
         except ValueError:
             raise
 
+    def is_valid_attack(self, source_location, target_location):
+        try:
+            source_piece = self._location.get(source_location)
+            if source_piece == None:
+                raise ValueError("Invalid Source Location")
+
+            if self._location.get(target_location) == None:
+                raise ValueError("Invalid Target Location")
+
+            index = (Rules.PSEUDO_ATTACKS, source_piece, source_location)
+            attack_board = self._rules[index]
+            test_board = attack_board & self._board
+            return test_board[target_location-1]
+        except ValueError:
+            raise
+
     def print_board(self):
         board_string = self._board.to01()[::-1]
 
@@ -173,5 +189,12 @@ class Rules(Enum):
 
 board = Chessboard()
 
-for k,v in board._rules.items():
-    print (k[1].name, k[2], v)
+board.add_piece(1, Piece.KING)
+board.add_piece(6, Piece.PAWN)
+board.add_piece(7, Piece.KNIGHT)
+
+print(board.is_valid_attack(7,6))
+
+
+#for k,v in board._rules.items():
+#    print (k[1].name, k[2], v)
