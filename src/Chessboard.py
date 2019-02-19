@@ -6,7 +6,6 @@ from ExtendedBitArray import ExtendedBitArray as ebs
 
 class Chessboard:
 
-
     def __init__(self, rows=3, columns=3):
         self._rows = rows
         self._columns = columns
@@ -134,7 +133,30 @@ class Chessboard:
         pass
 
     def _generate_king_pseudo_attacks(self):
-        pass
+        king_psuedo_attacks = ebs(self._num_of_spaces)
+
+        for x in range(1, self._num_of_spaces + 1):
+            king_psuedo_attacks.setall(0)
+
+            if not self.row(x) == 1:
+                king_psuedo_attacks[x + self._columns -1] = True
+                if not self.column(x) == 1:
+                    king_psuedo_attacks[x + self._columns - 2] = True
+                    king_psuedo_attacks[x - 2] = True
+                if not self.column(x) == self._columns:
+                    king_psuedo_attacks[x + self._columns] = True
+                    king_psuedo_attacks[x] = True
+            if not self.row(x) == self._rows:
+                king_psuedo_attacks[x - self._columns - 1] = True
+                if not self.column(x) == 1:
+                    king_psuedo_attacks[x - self._columns - 2] = True
+                if not self.column(x) == self._columns:
+                    king_psuedo_attacks[x - self._columns] = True
+            if not self.column(x) == 1:
+                king_psuedo_attacks[x - 2] = True
+            if not self.column(x) == self._columns:
+                king_psuedo_attacks[x] = True
+            self._rules[(Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
 
 @unique
 class Piece(Enum):
