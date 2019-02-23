@@ -6,15 +6,18 @@ from ExtendedBitArray import ExtendedBitArray as ebs
 
 class Chessboard:
 
+    _rules = {}
+
     def __init__(self, rows=3, columns=3):
         self._rows = rows
         self._columns = columns
+        self._name = str(self._rows) + "x" + str(self._columns)
         self._num_of_spaces = rows * columns
         self._board = ebs(self._num_of_spaces)
         self._board.setall(0)
 
         self._location = {}
-        self._rules = {}
+        #Chessboard._rules = {}
 
         self._generate_psuedo_attacks()
 
@@ -42,8 +45,8 @@ class Chessboard:
             if self._location.get(target_location) == None:
                 raise ValueError("Invalid Target Location")
 
-            index = (Rules.PSEUDO_ATTACKS, source_piece, source_location)
-            attack_board = self._rules[index]
+            index = (self._name, Rules.PSEUDO_ATTACKS, source_piece, source_location)
+            attack_board = Chessboard._rules[index]
             test_board = attack_board & self._board
             return test_board[target_location-1]
         except ValueError:
@@ -88,12 +91,14 @@ class Chessboard:
             return False
 
     def _generate_psuedo_attacks(self):
-        self._generate_pawn_pseudo_attacks()
-        self._generate_knight_pseudo_attacks()
-        self._generate_rook_pseudo_attacks()
-        self._generate_bishop_pseudo_attacks()
-        self._generate_queen_pseudo_attacks()
-        self._generate_king_pseudo_attacks()
+        if not Chessboard._rules.get(self._name):
+            self._generate_pawn_pseudo_attacks()
+            self._generate_knight_pseudo_attacks()
+            self._generate_rook_pseudo_attacks()
+            self._generate_bishop_pseudo_attacks()
+            self._generate_queen_pseudo_attacks()
+            self._generate_king_pseudo_attacks()
+        Chessboard._rules[self._name] = True
 
     def _generate_pawn_pseudo_attacks(self):
         pawn_psuedo_attacks = ebs(self._num_of_spaces)
@@ -102,14 +107,14 @@ class Chessboard:
             pawn_psuedo_attacks.setall(0)
 
             if self.row(x) == 1:
-                self._rules[(Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks
+                Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks
             else:
                 if not self.column(x) == 1:
                     pawn_psuedo_attacks[x + self._columns - 2] = True
                 if not self.column(x) == self._columns:
                     pawn_psuedo_attacks[x + self._columns ] = True
                     pass
-                self._rules[(Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks.copy()
+                Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks.copy()
 
     def _generate_knight_pseudo_attacks(self):
         knight_psuedo_attacks = ebs(self._num_of_spaces)
@@ -137,7 +142,7 @@ class Chessboard:
                         knight_psuedo_attacks[x - 2 * self._columns + -2] = True
                     if not self.column(x) == self._columns:
                         knight_psuedo_attacks[x - 2 * self._columns] = True
-            self._rules[(Rules.PSEUDO_ATTACKS, Piece.KNIGHT, x)] = knight_psuedo_attacks.copy()
+            Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KNIGHT, x)] = knight_psuedo_attacks.copy()
 
     def _generate_rook_pseudo_attacks(self):
         pass
@@ -172,7 +177,7 @@ class Chessboard:
                 king_psuedo_attacks[x - 2] = True
             if not self.column(x) == self._columns:
                 king_psuedo_attacks[x] = True
-            self._rules[(Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
+            Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
 
 @unique
 class Piece(Enum):
@@ -189,12 +194,13 @@ class Rules(Enum):
 
 board = Chessboard()
 
-board.add_piece(1, Piece.KING)
-board.add_piece(6, Piece.PAWN)
+board.add_piece(1, Piece.ROOK)
+board.add_piece(4, Piece.PAWN)
 board.add_piece(7, Piece.KNIGHT)
+board.add_piece(5, Piece.PAWN)
 
-print(board.is_valid_attack(7,6))
+print(board.is_valid_attack(5,7))
 
 
-#for k,v in board._rules.items():
-#    print (k[1].name, k[2], v)
+print(x-y)
+
