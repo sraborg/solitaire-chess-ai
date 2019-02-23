@@ -179,8 +179,6 @@ class Chessboard:
                 king_psuedo_attacks[x] = True
             Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
 
-
-
     def rank(self, position):
             if self._valid_board_space(position):
                 index = position - 1
@@ -209,6 +207,8 @@ class Chessboard:
         except ValueError:
             raise
 
+
+
 @unique
 class Piece(Enum):
     BISHOP = auto()
@@ -233,5 +233,18 @@ class Piece(Enum):
 class Rules(Enum):
     PSEUDO_ATTACKS = auto()
 
+board = Chessboard(rows=4)
 
-print(z)
+board.add_piece(2, Piece.ROOK)
+board.add_piece(5, Piece.ROOK)
+board.add_piece(8, Piece.ROOK)
+board.add_piece(11, Piece.PAWN)
+board.print_board()
+print("---")
+att = Chessboard(rows=4)
+
+#att._board = board._get_positive_ray_attacks(8)
+
+att.print_board()
+
+
