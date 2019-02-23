@@ -179,6 +179,36 @@ class Chessboard:
                 king_psuedo_attacks[x] = True
             Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
 
+
+
+    def rank(self, position):
+            if self._valid_board_space(position):
+                index = position - 1
+                rank_mask = ebs(self._num_of_spaces)
+                rank_mask.setall(0)
+
+                while rank_mask[index] == False:
+                    rank_mask[index] = True
+                    index = (index + self._columns) % self._num_of_spaces
+                return rank_mask
+
+    def file(self, position):
+        try:
+            if position < 1 or position > self._num_of_spaces:
+                raise ValueError("Invalid Position")
+            else:
+                index = position - 1
+                row = math.floor(index / self._columns)
+                rank_mask = ebs(self._num_of_spaces)
+                rank_mask.setall(0)
+                start = row * self._columns
+                for i in range(self._columns):
+                    rank_mask[start + i] = True
+                    index = (index + 1) % self._num_of_spaces
+                return rank_mask
+        except ValueError:
+            raise
+
 @unique
 class Piece(Enum):
     BISHOP = auto()
@@ -203,31 +233,5 @@ class Piece(Enum):
 class Rules(Enum):
     PSEUDO_ATTACKS = auto()
 
-board = Chessboard()
-
-board.add_piece(3, Piece.ROOK)
-board.add_piece(4, Piece.PAWN)
-board.add_piece(7, Piece.KNIGHT)
-board.add_piece(5, Piece.PAWN)
-board.add_piece(9, Piece.KNIGHT)
 
 
-print(Piece.is_sliding_piece(Piece.QUEEN))
-
-
-print("Occupancy")
-board.print_board()
-
-occupancy = ebs('101101101010')
-rank_mask = ebs('001001001001')
-potential_blockers = occupancy & rank_mask
-s = ebs('100000000000')
-piece_shift = s>>1
-diff = potential_blockers - piece_shift
-changed = occupancy ^ diff
-attacks = changed & rank_mask
-print(occupancy & rank_mask)
-print(piece_shift)
-print(diff)
-print(changed)
-print(attacks)
