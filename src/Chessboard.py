@@ -188,19 +188,46 @@ class Piece(Enum):
     PAWN = auto()
     QUEEN = auto()
 
+    @staticmethod
+    def is_sliding_piece(piece):
+        try:
+            if not isinstance(piece, Piece):
+                raise ValueError("Invalid Piece")
+            if piece is Piece.QUEEN or piece is Piece.BISHOP or piece is Piece.ROOK:
+                return True
+            else:
+                return False
+        except ValueError:
+            raise
 @unique
 class Rules(Enum):
     PSEUDO_ATTACKS = auto()
 
 board = Chessboard()
 
-board.add_piece(1, Piece.ROOK)
+board.add_piece(3, Piece.ROOK)
 board.add_piece(4, Piece.PAWN)
 board.add_piece(7, Piece.KNIGHT)
 board.add_piece(5, Piece.PAWN)
+board.add_piece(9, Piece.KNIGHT)
 
-print(board.is_valid_attack(5,7))
+
+print(Piece.is_sliding_piece(Piece.QUEEN))
 
 
-print(x-y)
+print("Occupancy")
+board.print_board()
 
+occupancy = ebs('101101101010')
+rank_mask = ebs('001001001001')
+potential_blockers = occupancy & rank_mask
+s = ebs('100000000000')
+piece_shift = s>>1
+diff = potential_blockers - piece_shift
+changed = occupancy ^ diff
+attacks = changed & rank_mask
+print(occupancy & rank_mask)
+print(piece_shift)
+print(diff)
+print(changed)
+print(attacks)
