@@ -35,6 +35,17 @@ class ExtendedBitArray(bitarray):
                 result.insert(0, False)
             return result
 
+    def __add__(self, arg):
+        if isinstance(arg, bitarray):
+
+            bit_length = arg.length()
+
+            temp = int(self.to01(), 2) + int(arg.to01(), 2)
+            temp2 = bin(temp)[2:]
+
+            result = temp2[-self.length():]
+            return result
+
     def twos_complement(self):
         complement = self.copy()
         complement.invert()
