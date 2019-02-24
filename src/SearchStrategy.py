@@ -48,36 +48,6 @@ class DepthFirstSearch(SearchStrategy):
                     stack.append((next_board, move_sequence, depth + 1))
         return solutions
 
-    def _search(self, board_, move_sequence_, possible_solutions_, depth, **kargs):
-
-        pieces = board_.num_of_pieces()
-
-        # Exit if a solution is found unless "complete_search" flag is set
-        if possible_solutions_ and not kargs.get("complete_search"):
-            return
-
-        # Base Case
-        # Possible Solution Found
-        if pieces < 2:
-            possible_solutions_.append(move_sequence_)
-            return
-        elif depth is kargs.get("max_iterations"):                   # Exit if "max_iterations" is set and reached
-            return
-        else:
-            attack_positions = board_.legal_attack_positions()
-
-            for position in attack_positions:                        # Not Empty
-                attacker = board_.position(position)
-                attacks = board_.valid_attacks(position)
-
-                for target_position in attacks:
-                    move_sequence = move_sequence_.copy()
-                    board = copy.deepcopy(board_)
-                    board.capture(position, target_position)
-                    move = (attacker, position, target_position)
-                    move_sequence.append(move)
-                    self._search(board, move_sequence, possible_solutions_, depth+1, max_iterations=kargs.get("max_iterations"))
-
 
 class BreadthFirstSearch(SearchStrategy):
 
