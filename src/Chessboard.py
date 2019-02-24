@@ -1,6 +1,8 @@
 from bitarray import bitarray
 from enum import Enum, unique, auto
 import math
+import copy
+
 from ExtendedBitArray import ExtendedBitArray as ebs
 
 
@@ -8,7 +10,7 @@ class Chessboard:
 
     _rules = {}
 
-    def __init__(self, rows=3, columns=3):
+    def __init__(self, rows=4, columns=4):
         self._rows = rows
         self._columns = columns
         self._name = str(self._rows) + "x" + str(self._columns)
@@ -16,40 +18,70 @@ class Chessboard:
         self._board = ebs(self._num_of_spaces)
         self._board.setall(0)
 
-        self._location = {}
+        self._location = {}         # Stores Pieces by Index (not by Position)
+        self._position = {}
         #Chessboard._rules = {}
 
         self._generate_psuedo_attacks()
 
-    def add_piece(self, position_index, piece):
+    def add_piece(self, position, piece):
         try:
-            if not self._valid_board_space(position_index):
+            if not self._valid_board_space(position):
                 raise ValueError("Invalid Location")
 
             elif not isinstance(piece, Piece):
                 raise ValueError("Invalid Piece")
 
             else:
-                self._board[position_index - 1] = True
-                self._location[position_index] = piece
+                index = position - 1
+                self._board[index] = True
+                self._position[position] = piece
 
         except ValueError:
             raise
 
-    def num_pieces(self):
+    def remove_piece(self, position):
+        index = position-1
+        self._position[position] = None
+        self._location[index] = None
+        self._board[index] = False
+
+    def capture(self, source_position, target_position):
+        if self.is_valid_attack(source_position, target_position):
+
+            self.remove_piece(target_position)
+            attacker = self._position.get(source_position)
+            self.add_piece(target_position, attacker)
+
+            self.remove_piece(source_position)
+
+    ##
+    #   @return = List of Positions
+
+    def legal_attack_positions(self):
+        attack_positions = []
+        for index in range(self._num_of_spaces):
+            position = index + 1
+            if self._position.get(position) is not None:
+                legal_attacks = self._valid_attacks(position)
+                if legal_attacks.count() > 0:
+                    attack_positions.append(position)
+        return attack_positions
+
+    def num_of_pieces(self):
         return self._board.count()
-    def is_valid_attack(self, source_position, target_location):
+
+    def is_valid_attack(self, source_position, target_position):
         try:
-            target_index = target_location - 1
-            attacker = self._location.get(source_position)
+            target_index = target_position - 1
+            attacker = self._position.get(source_position)
             if attacker == None:
                 raise ValueError("Invalid Source Location")
 
-            victim = self._location.get(target_location)
+            victim = self._position.get(target_position)
             if victim == None:
                 raise ValueError("Invalid Target Location")
 
-            print(attacker)
             if Piece.is_sliding_piece(attacker):
                 attack_board = self._valid_sliding_piece_attacks(source_position)
 
@@ -74,6 +106,9 @@ class Chessboard:
         for k,v in self._location.items():
             print(v.name, "at position", k)
 
+    def position(self, position):
+        return self._position.get(position)
+
     def row(self, position_index):
         try:
             if not self._valid_board_space(position_index):
@@ -93,8 +128,8 @@ class Chessboard:
         except ValueError:
             raise
 
-    def _valid_board_space(self, position_index):
-        if position_index > 0 and position_index <= self._num_of_spaces:
+    def _valid_board_space(self, position):
+        if position > 0 and position <= self._num_of_spaces:
             return True
         else:
             return False
@@ -188,48 +223,69 @@ class Chessboard:
                 king_psuedo_attacks[x] = True
             Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
 
-    def valid_attacks(self, source_position):
+    ##
+    #   @return List of Positions
+    def valid_attacks(self, position):
+        attacks = []
+        try:
+            board = self._board.copy()
+            board = self._valid_attacks(position)
+            while True:
+                # Loop through EBS and find first True
+                index = board.index(True)  # Will Raise ValueError when all Zeros
+                board[index] = False
+                position = index + 1
+                attacks.append(position)
+
+        except ValueError as e:  # No More attacks
+            return attacks
+            pass
+    ##
+    #   @ Returns EBS Board
+    def _valid_attacks(self, position):
         # Validation done in child method calls
-        attacker = self._location.get(source_position)
+        attacker =  self._position.get(position)
 
         if Piece.is_sliding_piece(attacker):
-            return self._valid_sliding_piece_attacks(source_position)
+            return self._valid_sliding_piece_attacks(position)
         else:
-            return self._valid_non_sliding_piece_attacks(source_position)
-    def _valid_sliding_piece_attacks(self, source_position):
+            return self._valid_non_sliding_piece_attacks(position)
+
+    def _valid_sliding_piece_attacks(self, position):
         try:
-            attacker = self._location.get(source_position)
+            attacker = self._position.get(position)
 
             if not Piece.is_sliding_piece(attacker):
                 raise ValueError("Invalid Piece. Piece must be a slider")
-            if self._valid_board_space(source_position):
+            if self._valid_board_space(position):
                 attack_board = ebs(self._num_of_spaces)
                 attack_board.setall(False)
                 if attacker in {Piece.ROOK, Piece.QUEEN}:
-                    north_attacks = self._board & self._get_ray_attack(source_position, Rays.NORTH)
-                    east_attacks = self._board & self._get_ray_attack(source_position, Rays.EAST)
-                    south_attacks = self._board & self._get_ray_attack(source_position, Rays.SOUTH)
-                    west_attacks = self._board & self._get_ray_attack(source_position, Rays.WEST)
+                    north_attacks = self._board & self._get_ray_attack(position, Rays.NORTH)
+                    east_attacks = self._board & self._get_ray_attack(position, Rays.EAST)
+                    south_attacks = self._board & self._get_ray_attack(position, Rays.SOUTH)
+                    west_attacks = self._board & self._get_ray_attack(position, Rays.WEST)
                     attack_board = north_attacks | east_attacks | south_attacks | west_attacks
                 if attacker in {Piece.BISHOP, Piece.QUEEN}:
-                    ne_attacks = self._board & self._get_ray_attack(source_position, Rays.NORTH_EAST)
-                    se_attacks = self._board & self._get_ray_attack(source_position, Rays.SOUTH_EAST)
-                    sw_attacks = self._board & self._get_ray_attack(source_position, Rays.SOUTH_WEST)
-                    nw_attacks = self._board & self._get_ray_attack(source_position, Rays.NORTH_WEST)
+                    ne_attacks = self._board & self._get_ray_attack(position, Rays.NORTH_EAST)
+                    se_attacks = self._board & self._get_ray_attack(position, Rays.SOUTH_EAST)
+                    sw_attacks = self._board & self._get_ray_attack(position, Rays.SOUTH_WEST)
+                    nw_attacks = self._board & self._get_ray_attack(position, Rays.NORTH_WEST)
                     attack_board = attack_board | ne_attacks | se_attacks | sw_attacks | nw_attacks
                 return attack_board
         except:
             raise
 
-    def _valid_non_sliding_piece_attacks(self, source_position):
+    def _valid_non_sliding_piece_attacks(self, position):
         try:
-            if self._valid_board_space(source_position):
+            if self._valid_board_space(position):
 
-                attacker = self._location.get(source_position)
+                attacker = self._position.get(position)
+
                 if attacker == None:
                     raise ValueError("Invalid Source Location. Empty Board Space")
 
-                index = (self._name, Rules.PSEUDO_ATTACKS, attacker, source_position)
+                index = (self._name, Rules.PSEUDO_ATTACKS, attacker, position)
                 return Chessboard._rules[index] & self._board
         except ValueError:
             raise
@@ -393,8 +449,6 @@ class Chessboard:
         except ValueError:
             raise
 
-    def _get_negative_ray_attack(self,position):
-        pass
 
 @unique
 class Piece(Enum):
@@ -444,24 +498,4 @@ class Rays(Enum):
         except:
             raise
 
-
-
-board = Chessboard(rows=4, columns=4)
-board.add_piece(1, Piece.BISHOP)
-board.add_piece(5, Piece.ROOK)
-board.add_piece(6, Piece.QUEEN)
-board.add_piece(7, Piece.PAWN)
-board.add_piece(8, Piece.PAWN)
-board.add_piece(9, Piece.PAWN)
-board.add_piece(11, Piece.KNIGHT)
-board.add_piece(13, Piece.PAWN)
-board.add_piece(16, Piece.BISHOP)
-board.print_board()
-print("-------")
-
-att = Chessboard(rows=4, columns=4)
-att._board = board.valid_attacks(11)
-att.print_board()
-
-print("-------")
 
