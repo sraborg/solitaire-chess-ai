@@ -36,19 +36,28 @@ class Chessboard:
         except ValueError:
             raise
 
-    def is_valid_attack(self, source_location, target_location):
+    def num_pieces(self):
+        return self._board.count()
+    def is_valid_attack(self, source_position, target_location):
         try:
-            source_piece = self._location.get(source_location)
-            if source_piece == None:
+            target_index = target_location - 1
+            attacker = self._location.get(source_position)
+            if attacker == None:
                 raise ValueError("Invalid Source Location")
 
-            if self._location.get(target_location) == None:
+            victim = self._location.get(target_location)
+            if victim == None:
                 raise ValueError("Invalid Target Location")
 
-            index = (self._name, Rules.PSEUDO_ATTACKS, source_piece, source_location)
-            attack_board = Chessboard._rules[index]
+            print(attacker)
+            if Piece.is_sliding_piece(attacker):
+                attack_board = self._valid_sliding_piece_attacks(source_position)
+
+            else:
+                #index = (self._name, Rules.PSEUDO_ATTACKS, attacker, source_position)
+                attack_board = self._valid_non_sliding_piece_attacks(source_position)  #Chessboard._rules[index]
             test_board = attack_board & self._board
-            return test_board[target_location-1]
+            return test_board[target_index]
         except ValueError:
             raise
 
@@ -179,6 +188,52 @@ class Chessboard:
                 king_psuedo_attacks[x] = True
             Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KING, x)] = king_psuedo_attacks.copy()
 
+    def valid_attacks(self, source_position):
+        # Validation done in child method calls
+        attacker = self._location.get(source_position)
+
+        if Piece.is_sliding_piece(attacker):
+            return self._valid_sliding_piece_attacks(source_position)
+        else:
+            return self._valid_non_sliding_piece_attacks(source_position)
+    def _valid_sliding_piece_attacks(self, source_position):
+        try:
+            attacker = self._location.get(source_position)
+
+            if not Piece.is_sliding_piece(attacker):
+                raise ValueError("Invalid Piece. Piece must be a slider")
+            if self._valid_board_space(source_position):
+                attack_board = ebs(self._num_of_spaces)
+                attack_board.setall(False)
+                if attacker in {Piece.ROOK, Piece.QUEEN}:
+                    north_attacks = self._board & self._get_ray_attack(source_position, Rays.NORTH)
+                    east_attacks = self._board & self._get_ray_attack(source_position, Rays.EAST)
+                    south_attacks = self._board & self._get_ray_attack(source_position, Rays.SOUTH)
+                    west_attacks = self._board & self._get_ray_attack(source_position, Rays.WEST)
+                    attack_board = north_attacks | east_attacks | south_attacks | west_attacks
+                if attacker in {Piece.BISHOP, Piece.QUEEN}:
+                    ne_attacks = self._board & self._get_ray_attack(source_position, Rays.NORTH_EAST)
+                    se_attacks = self._board & self._get_ray_attack(source_position, Rays.SOUTH_EAST)
+                    sw_attacks = self._board & self._get_ray_attack(source_position, Rays.SOUTH_WEST)
+                    nw_attacks = self._board & self._get_ray_attack(source_position, Rays.NORTH_WEST)
+                    attack_board = attack_board | ne_attacks | se_attacks | sw_attacks | nw_attacks
+                return attack_board
+        except:
+            raise
+
+    def _valid_non_sliding_piece_attacks(self, source_position):
+        try:
+            if self._valid_board_space(source_position):
+
+                attacker = self._location.get(source_position)
+                if attacker == None:
+                    raise ValueError("Invalid Source Location. Empty Board Space")
+
+                index = (self._name, Rules.PSEUDO_ATTACKS, attacker, source_position)
+                return Chessboard._rules[index] & self._board
+        except ValueError:
+            raise
+
     def rank(self, position):
             if self._valid_board_space(position):
                 index = position - 1
@@ -275,7 +330,6 @@ class Chessboard:
                         ray = Rays.NORTH
                     elif ray is Rays.SOUTH_EAST:
                         ray = Rays.NORTH_WEST
-
                     position = self._num_of_spaces - position + 1
                     is_flipped = True
 
@@ -286,22 +340,30 @@ class Chessboard:
                 mask = ebs(self._num_of_spaces)
                 mask.setall(0)
 
-                # Check North & South
-                if ray is Rays.NORTH or ray is Rays.SOUTH:
+                # Check North
+                if ray is Rays.NORTH:
                     rank_mask = self.rank(position)
                     mask = mask | rank_mask
 
-                # Check East & West
-                elif ray is Rays.EAST or ray is Rays.WEST:
+                # Check East
+                elif ray is Rays.EAST:
+
+                    # Fixes a glitch when checking EAST attacks while in last column
+                    if position % self._rows is 0:
+                        no_attacks = ebs(self._num_of_spaces)
+                        no_attacks.setall(0)
+                        return ebs(no_attacks)
+
+
                     file_mask = self.file(position)
                     mask = mask | file_mask
 
-                # Check NE & SW
-                elif ray is Rays.NORTH_EAST or ray is Rays.SOUTH_WEST:
+                # Check NE
+                elif ray is Rays.NORTH_EAST:
                     diagonal_mask = self.diagonal(position)
                     mask = mask | diagonal_mask
 
-                # NW & SE
+                # Check NW
                 else:
                     anti_diagonal_mask = self.anti_diagonal(position)
                     mask = mask | anti_diagonal_mask
@@ -398,7 +460,8 @@ board.print_board()
 print("-------")
 
 att = Chessboard(rows=4, columns=4)
-att._board = board._get_ray_attack(11, Rays.SOUTH_WEST)
+att._board = board.valid_attacks(11)
 att.print_board()
 
 print("-------")
+
