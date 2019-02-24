@@ -28,9 +28,9 @@ class ExtendedBitArray(bitarray):
 
     def __sub__(self, arg):
         if isinstance(arg, bitarray):
-
             temp = int(self.to01(), 2) - int(arg.to01(), 2)
-            if (temp < 0):
+
+            if temp < 0:
                 temp = bin(temp)[3:]
             else:
                 temp = bin(temp)[2:]

@@ -207,7 +207,132 @@ class Chessboard:
         except ValueError:
             raise
 
+    def diagonal(self, position):
+        if self._valid_board_space(position):
+            index = position - 1
+            diagonal_mask = ebs(self._num_of_spaces)
+            diagonal_mask.setall(0)
+            starting_column = self.column(position)
 
+            # Mark NE
+            while index < self._num_of_spaces and starting_column <= self.column(index + 1):
+                diagonal_mask[index] = True
+                index = (index + self._columns) + 1
+
+            '''
+            # Mark SW
+            index = position - 2 - self._columns
+            while index >= 0 and starting_column >= self.column(index + 1):
+                diagonal_mask[index] = True
+                index = (index - self._columns) - 1
+            '''
+            return diagonal_mask
+        pass
+
+    def anti_diagonal(self,position):
+        if self._valid_board_space(position):
+            index = position - 1
+            antidiagonal_mask = ebs(self._num_of_spaces)
+            antidiagonal_mask.setall(0)
+            starting_column = self.column(position)
+
+            antidiagonal_mask[index] = True
+            # Mark SE
+            index = position - self._columns
+            while index >= 0 and starting_column < self.column(index + 1):
+                antidiagonal_mask[index] = True
+                index = (index - self._columns) + 1
+
+
+            # Mark NW
+            index = position + self._columns - 2
+            while index < self._num_of_spaces and starting_column > self.column(index + 1):
+                antidiagonal_mask[index] = True
+                index = (index + self._columns) - 1
+
+            return antidiagonal_mask
+
+    def _get_ray_attack(self, position, ray):
+        try:
+            if not isinstance(ray, Rays):
+                raise ValueError("Invalid Ray")
+            if self._valid_board_space(position):
+
+                is_flipped = False  # Flagged Used to re-flip board if needed
+
+                occupancy = self._board.copy()
+
+                # Used for Negative Rays Attacks
+                # Instead of changing calculations,
+                # The board is just flipped with index/positions/rays reset accordingly
+                if not Rays.is_positive(ray):
+                    occupancy.reverse()
+                    if ray is Rays.WEST:
+                        ray = Rays.EAST
+                    elif ray is Rays.SOUTH_WEST:
+                        ray = Rays.NORTH_EAST
+                    elif ray is Rays.SOUTH:
+                        ray = Rays.NORTH
+                    elif ray is Rays.SOUTH_EAST:
+                        ray = Rays.NORTH_WEST
+
+                    position = self._num_of_spaces - position + 1
+                    is_flipped = True
+
+                index = position - 1
+                occupancy_reversed = occupancy.copy()
+                occupancy_reversed.reverse()
+
+                mask = ebs(self._num_of_spaces)
+                mask.setall(0)
+
+                # Check North & South
+                if ray is Rays.NORTH or ray is Rays.SOUTH:
+                    rank_mask = self.rank(position)
+                    mask = mask | rank_mask
+
+                # Check East & West
+                elif ray is Rays.EAST or ray is Rays.WEST:
+                    file_mask = self.file(position)
+                    mask = mask | file_mask
+
+                # Check NE & SW
+                elif ray is Rays.NORTH_EAST or ray is Rays.SOUTH_WEST:
+                    diagonal_mask = self.diagonal(position)
+                    mask = mask | diagonal_mask
+
+                # NW & SE
+                else:
+                    anti_diagonal_mask = self.anti_diagonal(position)
+                    mask = mask | anti_diagonal_mask
+
+                potential_blockers = occupancy & mask
+                slider_position = ebs(self._num_of_spaces)
+                slider_position.setall(False)
+                slider_position[index] = True
+
+
+
+                shifted_slider_position = (slider_position.copy() >> 1)
+                # Calculations // Everything is reversed to do math
+                potential_blockers.reverse()
+                shifted_slider_position.reverse()
+
+                changes = (potential_blockers - shifted_slider_position)
+                changes.resize(self._num_of_spaces)
+                changes = (occupancy_reversed ^ changes)
+                changes.reverse()
+                attacks = changes & mask & occupancy
+                attacks[index] = False
+
+                if is_flipped:
+                    attacks.reverse()
+                return attacks
+        except ValueError:
+            raise
+
+    def _get_negative_ray_attack(self,position):
+        pass
 
 @unique
 class Piece(Enum):
@@ -233,18 +358,47 @@ class Piece(Enum):
 class Rules(Enum):
     PSEUDO_ATTACKS = auto()
 
-board = Chessboard(rows=4)
+@unique
+class Rays(Enum):
+    NORTH = auto()
+    NORTH_EAST = auto()
+    EAST = auto()
+    SOUTH_EAST = auto()
+    SOUTH = auto()
+    SOUTH_WEST = auto()
+    WEST = auto()
+    NORTH_WEST = auto()
 
-board.add_piece(2, Piece.ROOK)
+    @staticmethod
+    def is_positive(ray):
+        try:
+            if not isinstance(ray, Rays):
+                raise ValueError("Invalid Ray")
+
+            if ray in [Rays.NORTH, Rays.NORTH_EAST, Rays.NORTH_WEST, Rays.EAST]:
+                return True
+            else:
+                return False
+        except:
+            raise
+
+
+
+board = Chessboard(rows=4, columns=4)
+board.add_piece(1, Piece.BISHOP)
 board.add_piece(5, Piece.ROOK)
-board.add_piece(8, Piece.ROOK)
-board.add_piece(11, Piece.PAWN)
+board.add_piece(6, Piece.QUEEN)
+board.add_piece(7, Piece.PAWN)
+board.add_piece(8, Piece.PAWN)
+board.add_piece(9, Piece.PAWN)
+board.add_piece(11, Piece.KNIGHT)
+board.add_piece(13, Piece.PAWN)
+board.add_piece(16, Piece.BISHOP)
 board.print_board()
-print("---")
-att = Chessboard(rows=4)
+print("-------")
 
-#att._board = board._get_positive_ray_attacks(8)
-
+att = Chessboard(rows=4, columns=4)
+att._board = board._get_ray_attack(11, Rays.SOUTH_WEST)
 att.print_board()
 
-
+print("-------")
