@@ -50,53 +50,42 @@ class DepthFirstSearch(SearchStrategy):
 
 class BreadthFirstSearch(SearchStrategy):
 
-    def search(self, board_, *args, **kargs):
-        print("===================")
-        print("BFS CALLED")
-        print("===================")
-        possible_solutions = []
-        move_sequence = []
-        self._search(board_, move_sequence, possible_solutions, 0)
-        return possible_solutions
+    def search(self, board_, depth=0, **kargs):
+        solutions = []
 
-    def _search(self, board_, move_sequence_, possible_solutions_, depth):
-        print("DEPTH: ", depth)
-        pieces = board_.num_of_pieces()
+        # BFS Structures
+        queue = []
+        queue.insert(0,(board_,[],0))
 
-        # Base Case
-        # Possible Solution Found
-        if pieces < 2:
-            # print("DEPTH: ", depth)
-            possible_solutions_.append(move_sequence_)
-            return
-        else:
-            attack_positions = board_.legal_attack_positions()
+        while queue:
+            board, move_sequence_, depth = queue.pop()
+            pieces = board.num_of_pieces()
 
+            # Check For Win Condition
+            # Possible Solution Found
+            if pieces < 2 and depth:
+                solutions.append(move_sequence_)
+
+                # Make Sure "max_iterations" Condition is met
+                if depth is kargs.get("max_iterations"):
+                    break
+
+            # Queue Up Remaining
+            attack_positions = board.legal_attack_positions()
             for position in attack_positions:  # Not Empty
-                attacker = board_.position(position)
-                attacks = board_.valid_attacks(position)
+                attacker = board.position(position)
+                attacks = board.valid_attacks(position)
 
                 possible_attacks = []
                 for target_position in attacks:
                     move_sequence = move_sequence_.copy()
-                    board = copy.deepcopy(board_)
-                    # print("=====================")
-                    # print("DEPTH: ", depth)
-                    # board.print_board()
-                    board.capture(position, target_position)
-                    # print("-------------------")
+                    next_board = copy.deepcopy(board)
+                    next_board.capture(position, target_position)
                     move = (attacker, position, target_position)
                     move_sequence.append(move)
-                    # print("Move: ", move)
-                    # print("Move Sequence: ", move_sequence)
-                    # board.print_board()
-                    # print("=====================")
-                    transition = (board, move_sequence)
-                    possible_attacks.append(transition)
 
-                for k,v in possible_attacks:
-                    self._search(k, v, possible_solutions_, depth + 1)
-
+                    queue.insert(0, (next_board, move_sequence, depth+1))
+        return solutions
 
 class IterativeDeepeningSearch(SearchStrategy):
 

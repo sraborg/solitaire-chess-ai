@@ -93,25 +93,60 @@ board4.add_piece(16, Piece.ROOK)
 agent = SearchAgent()
 #
 
-print("=== PUZZLE 1 ===")
-agent.chessboard = board
-#agent.search()
+#print("=== PUZZLE 1 ===")
 
-s = IterativeDeepeningSearch()
-agent.search_strategy = s
+
+bfs = BreadthFirstSearch()
+ids = IterativeDeepeningSearch()
+
+agent.chessboard = board
 agent.search()
 print(agent.solutions)
 
-'''
-print("=== PUZZLE 2 ===")
+
+agent.search_strategy = bfs
+agent.search()
+print(agent.solutions)
+
+agent.search_strategy = ids
+agent.search()
+print(agent.solutions)
+
 agent.chessboard = board2
 agent.search()
+print(agent.solutions)
 
-print("=== PUZZLE 3 ===")
+
+agent.search_strategy = bfs
+agent.search()
+print(agent.solutions)
+
+agent.search_strategy = ids
+agent.search()
+print(agent.solutions)
+
 agent.chessboard = board3
 agent.search()
+print(agent.solutions)
 
-print("=== PUZZLE 4 ===")
+
+agent.search_strategy = bfs
+agent.search()
+print(agent.solutions)
+
+agent.search_strategy = ids
+agent.search()
+print(agent.solutions)
+
 agent.chessboard = board4
 agent.search()
-'''
+print(agent.solutions)
+
+
+agent.search_strategy = bfs
+agent.search()
+print(agent.solutions)
+
+agent.search_strategy = ids
+agent.search()
+print(agent.solutions)
