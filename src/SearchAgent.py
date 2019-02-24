@@ -6,6 +6,7 @@ from Chessboard import Piece
 class SearchAgent:
 
     def __init__(self):
+        self.solutions = []
         self._search_strategy = DepthFirstSearch();
         self._chessboard = None
 
@@ -29,7 +30,7 @@ class SearchAgent:
     @search_strategy.setter
     def search_strategy(self, value):
         try:
-            if not isinstance(value, Search.SearchStrategy):
+            if not isinstance(value, SearchStrategy):
                 raise ValueError("Invalid Search Agent")
 
             self._search_strategy = value
@@ -44,11 +45,13 @@ class SearchAgent:
                 raise Exception("No Chessboard Set")
 
             gamestate = self.chessboard
-            print(self.search_strategy.search(gamestate))
+            self.solutions = self.search_strategy.search(gamestate)
         except Exception as e:
             print(e)
             raise
 
+    def print_solution(self):
+        print(self.solutions)
 
 # PUZZLE 1
 board = cb()
@@ -56,6 +59,7 @@ board.add_piece(3, Piece.PAWN)
 board.add_piece(6, Piece.KNIGHT)
 board.add_piece(13, Piece.ROOK)
 board.add_piece(15, Piece.QUEEN)
+
 
 # PUZZLE 2
 board2 = cb()
@@ -86,13 +90,19 @@ board4.add_piece(11, Piece.KNIGHT)
 board4.add_piece(16, Piece.ROOK)
 
 
-
+agent = SearchAgent()
+#
 
 print("=== PUZZLE 1 ===")
-agent = SearchAgent()
 agent.chessboard = board
-agent.search()
+#agent.search()
 
+s = IterativeDeepeningSearch()
+agent.search_strategy = s
+agent.search()
+print(agent.solutions)
+
+'''
 print("=== PUZZLE 2 ===")
 agent.chessboard = board2
 agent.search()
@@ -104,3 +114,4 @@ agent.search()
 print("=== PUZZLE 4 ===")
 agent.chessboard = board4
 agent.search()
+'''
