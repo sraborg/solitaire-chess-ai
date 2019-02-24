@@ -53,7 +53,7 @@ class SearchAgent:
     def print_solution(self):
         print(self.solutions)
 
-'''
+
 # PUZZLE 1
 board = cb()
 board.add_piece(3, Piece.PAWN)
@@ -151,4 +151,3 @@ print(agent.solutions)
 agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
-'''

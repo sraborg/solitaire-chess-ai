@@ -1,18 +1,36 @@
 import sys
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtGui import *
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QPushButton
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QComboBox, QFileDialog
+from PyQt5.QtCore import QSize, Qt
+#from PyQt5.QtGui import *
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtWidgets import QAction, QPushButton, QDialog, QMdiArea, QVBoxLayout, QDialogButtonBox
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QGroupBox, QFormLayout, QGridLayout, QSpinBox
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
+from Chessboard import Chessboard as cb
+from SearchStrategy import *
+from SearchAgent import SearchAgent
 
 
 class window(QMainWindow):
 
     def __init__(self):
         super(window, self).__init__()
+
+        # Add Models / Configure AI
+        self.chessboard = cb()
+        self.agent = SearchAgent()
+        self.agent.chessboard = self.chessboard
+
+        self.layout = QVBoxLayout()
+
+        self.initUI()
+
+    def initUI(self):
         self.setGeometry(50, 50, 800, 500)
         self.setWindowTitle('Solitare Chess AI')
         # self.setWindowIcon(QIcon('pic.png'))
+
+        self.mdi = QMdiArea()
 
 
         newAction = QAction('&New Board', self)
@@ -37,33 +55,69 @@ class window(QMainWindow):
         mainMenu = self.menuBar()
         fileMenu = mainMenu.addMenu('File')
         fileMenu.addAction(newAction)
-        fileMenu.addAction(loadAction)
-        fileMenu.addAction(saveAction)
+        # fileMenu.addAction(loadAction)
+        # fileMenu.addAction(saveAction)
         fileMenu.addAction(quitAction)
 
-        comboBox = QComboBox(self)
-        comboBox.addItem('Depth First Search')
-        comboBox.addItem('Breadth First Search')
-        comboBox.addItem('Iterative Deepening Search')
-        comboBox.setMinimumContentsLength(comboBox.minimumContentsLength())
-        comboBox.resize(comboBox.minimumSizeHint())
+        exitAct = QAction(QIcon('exit24.png'), 'Exit', self)
+        exitAct.setShortcut('Ctrl+Q')
+        exitAct.triggered.connect(self.close_application)
 
-        comboBox.move(5, 5)
+        search_combo_box = QComboBox(self)
+        search_combo_box.addItem('Depth First Search')
+        search_combo_box.addItem('Breadth First Search')
+        search_combo_box.addItem('Iterative Deepening Search')
+        search_combo_box.setMinimumContentsLength(search_combo_box.minimumContentsLength())
+        search_combo_box.resize(search_combo_box.minimumSizeHint())
+        search_combo_box.activated[int].connect(self._set_search_strategy)
 
-        comboBox.activated[str].connect(self._set_search_strategy)
+        search_btn = QPushButton("Search!", self)
+        search_btn.clicked.connect(self._search)
+        search_btn.resize(search_btn.minimumSizeHint())
+        #btn.move(200, 5)
 
-        btn = QPushButton("Search!", self)
-        btn.clicked.connect(self._search)
-        btn.resize(btn.minimumSizeHint())
-        btn.move(200, 5)
+        self.toolbar = self.addToolBar('Search')
+        self.toolbar.addWidget(search_combo_box)
+        self.toolbar.addWidget(search_btn)
 
-        self.create_gui()
-
-    def create_gui(self):
+        self.chessboard_table_widget = QTableWidget()
+        self.layout.addWidget(self.chessboard_table_widget)
+        self.setCentralWidget(self.mdi)
+        self.mdi.setLayout(self.layout)
         self.show()
 
     def _new_board(self):
-        pass
+        # https://stackoverflow.com/questions/17512542/getting-multiple-inputs-from-qinputdialog-in-qtcreator
+        rows = 3
+        columns = 3
+
+        dialog = NewBoardDialog(self)
+
+        rows, columns = dialog.getResults()
+        print(rows, columns)
+        self.chessboard = cb(rows, columns)
+        self._create_board(rows, columns)
+
+    def _create_board(self, rows_, columns_):
+        self.chessboard_table_widget.setParent(None) # Remove Old
+        self.chessboard_table_widget = QTableWidget()
+        self.chessboard_table_widget.setRowCount(rows_)
+        self.chessboard_table_widget.setColumnCount(columns_)
+        self.chessboard_table_widget.horizontalHeader().setDefaultSectionSize(125);
+        self.chessboard_table_widget.verticalHeader().setDefaultSectionSize(125);
+        self.chessboard_table_widget.horizontalHeader().hide()
+        self.chessboard_table_widget.verticalHeader().hide()
+        self.chessboard_table_widget.itemClicked.connect(self._chessboard_click)
+
+        for c in range(columns_):
+            for r in range(rows_):
+                t = str(c) + " " + str(r)
+                cell = QTableWidgetItem(t)
+                cell.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled);
+                self.chessboard_table_widget.setItem(r, c, cell)
+
+        self.layout.addWidget(self.chessboard_table_widget)
+        self.resize(self.sizeHint())
 
     def _load_board(self):
         name, _ = QFileDialog.getOpenFileName(self, 'Open File', options=QFileDialog.DontUseNativeDialog)
@@ -72,14 +126,76 @@ class window(QMainWindow):
     def _save_board(self):
         pass
 
-    def _set_search_strategy(self):
-        pass
+    def _set_search_strategy(self, strategy_):
+        if strategy_ == 0:
+            self.agent.strategy = DepthFirstSearch()
+        elif strategy_ == 1:
+            self.agent.strategy = BreadthFirstSearch()
+        elif strategy_ == 2:
+            self.agent.strategy = IterativeDeepeningSearch()
 
     def _search(self):
-        pass
+        self.agent.search()
+        print(self.agent.solutions)
+
     def close_application(self):
         sys.exit()
-        
+
+    def _chessboard_click(self, item):
+        max_rows = self.chessboard_table_widget.rowCount()
+        max_columns = self.chessboard_table_widget.columnCount()
+        row2 = max_rows - self.chessboard_table_widget.currentRow() - 1
+        position = self.chessboard_table_widget.currentColumn() + row2 * \
+                max_columns + 1
+
+        print("position", position)
+        pass
+
+class NewBoardDialog(QDialog):
+
+    def __init__(self, parent):
+        super(NewBoardDialog, self).__init__(parent)
+
+        self.createFormGroupBox()
+
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QVBoxLayout()
+        mainLayout.addWidget(self.form_group_box)
+        mainLayout.addWidget(self.buttonBox)
+        self.setLayout(mainLayout)
+
+
+
+        self.setWindowTitle("Board Dimensions")
+
+    def createMenu(self):
+        pass
+
+    def createFormGroupBox(self):
+        self.form_group_box = QGroupBox("Form layout")
+        self.row_spin_box = QSpinBox()
+        self.row_spin_box.setMinimum(1)
+        self.row_spin_box.setMaximum(10)
+        self.row_spin_box.setValue(4)
+        self.column_spin_box = QSpinBox()
+        self.column_spin_box.setMinimum(1)
+        self.column_spin_box.setMaximum(10)
+        self.column_spin_box.setValue(4)
+        layout = QFormLayout()
+        layout.addRow(QLabel("Rows:"), self.row_spin_box)
+        layout.addRow(QLabel("Columns:"), self.column_spin_box)
+        self.form_group_box.setLayout(layout)
+
+    def getResults(self):
+        result = self.exec_() # Halt Program
+        if result:
+            return self.row_spin_box.value(), self.column_spin_box.value()
+        else:
+            return None
 
 def run():
     app = QApplication(sys.argv)
