@@ -50,26 +50,57 @@ class SearchAgent:
             raise
 
 
-
+# PUZZLE 1
 board = cb()
 board.add_piece(3, Piece.PAWN)
 board.add_piece(6, Piece.KNIGHT)
 board.add_piece(13, Piece.ROOK)
 board.add_piece(15, Piece.QUEEN)
-#board.print_board()
-#print("-------")
+
+# PUZZLE 2
+board2 = cb()
+board2.add_piece(6, Piece.PAWN)
+board2.add_piece(9, Piece.ROOK)
+board2.add_piece(10, Piece.BISHOP)
+board2.add_piece(14, Piece.ROOK)
+board2.add_piece(15, Piece.PAWN)
+
+# PUZZLE 3
+board3 = cb()
+board3.add_piece(3, Piece.ROOK)
+board3.add_piece(7, Piece.PAWN)
+board3.add_piece(9, Piece.ROOK)
+board3.add_piece(10, Piece.KING)
+board3.add_piece(11, Piece.QUEEN)
+board3.add_piece(16, Piece.PAWN)
+
+# PUZZLE 4
+board4 = cb()
+board4.add_piece(1, Piece.PAWN)
+board4.add_piece(2, Piece.BISHOP)
+board4.add_piece(3, Piece.PAWN)
+board4.add_piece(6, Piece.ROOK)
+board4.add_piece(9, Piece.BISHOP)
+board4.add_piece(10, Piece.KING)
+board4.add_piece(11, Piece.KNIGHT)
+board4.add_piece(16, Piece.ROOK)
 
 
 
-position = 6
-att = cb()
-#att._board = board._valid_attacks(position)
-#att.print_board()
-#print(position, board.valid_attacks(position))
 
+print("=== PUZZLE 1 ===")
 agent = SearchAgent()
 agent.chessboard = board
 agent.search()
-#print("-------")
-#board.capture(11,13)
-#board.print_board()
+
+print("=== PUZZLE 2 ===")
+agent.chessboard = board2
+agent.search()
+
+print("=== PUZZLE 3 ===")
+agent.chessboard = board3
+agent.search()
+
+print("=== PUZZLE 4 ===")
+agent.chessboard = board4
+agent.search()
