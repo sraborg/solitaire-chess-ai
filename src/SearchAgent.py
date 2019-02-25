@@ -100,55 +100,66 @@ agent = SearchAgent()
 bfs = BreadthFirstSearch()
 ids = IterativeDeepeningSearch()
 
+
 agent.chessboard = board
 agent.search()
-#print(agent.solutions)
-
+print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.search_strategy = bfs
 agent.search()
-#print(agent.solutions)
+print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
-
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.chessboard = board2
 agent.search()
 print(agent.solutions)
-
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.search_strategy = bfs
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.chessboard = board3
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 
 agent.search_strategy = bfs
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 agent.chessboard = board4
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
 
 agent.search_strategy = bfs
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
+
 
 agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
+print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)

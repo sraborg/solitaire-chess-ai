@@ -12,7 +12,10 @@ class Chessboard(SubjectInterface):
     _rules = {}
 
     def __init__(self, rows=4, columns=4):
-        self._observers = []
+        self._observers = {}
+        self._events = {}
+        self._events[BoardEvent.CHANGE] = {}
+
         self._rows = rows
         self._columns = columns
         self._name = str(self._rows) + "x" + str(self._columns)
@@ -44,7 +47,7 @@ class Chessboard(SubjectInterface):
                 index = position - 1
                 self._board[index] = True
                 self._position[position] = piece
-                self.notify_observers()
+                self.notify_observers(BoardEvent.CHANGE)
 
         except ValueError:
             raise
@@ -564,19 +567,25 @@ class Chessboard(SubjectInterface):
 
     # Implement Subject Interface Methods
 
-    def register_observer(self, observer_):
-        self._observers.append(observer_)
+    def register_observer(self, event, observer_, callback):
+
+        self._event_observers(event)[observer_] = callback
         print("added")
 
+    def unregister_observer(self, event, observer_):
+        del self._event_observers(event)[observer_]
 
-    def unregister_observer(self, observer_):
-        self._observers.remove(observer_)
+    def notify_observers(self, event, message=None):
+        self._event_observers(event)
+        for observer, callback in self._event_observers(event).items():
+            callback(message)
 
+    def _event_observers(self, event):
+        return self._events[event]
 
-    def notify_observers(self):
-        for observer in self._observers:
-            observer.update_observer(self)
-
+@unique
+class BoardEvent(Enum):
+    CHANGE = auto()
 
 @unique
 class Piece(Enum):

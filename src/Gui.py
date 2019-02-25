@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdi
 from PyQt5.QtWidgets import QGroupBox, QFormLayout, QGridLayout, QSpinBox
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 from Chessboard import Chessboard as cb
-from Chessboard import Piece
+from Chessboard import Piece, BoardEvent
 from SearchStrategy import *
 from SearchAgent import SearchAgent
 from ObserverInterface import *
@@ -113,7 +113,7 @@ class window(QMainWindow):
             rows, columns = dialog.getResults()
             #print(rows, columns)
             new_board = cb(rows, columns)
-            new_board.register_observer(self)
+            new_board.register_observer(BoardEvent.CHANGE, self, self.update_observer)
             self.chessboard = new_board
             self._create_board(rows, columns)
 
