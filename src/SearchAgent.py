@@ -102,16 +102,17 @@ ids = IterativeDeepeningSearch()
 
 agent.chessboard = board
 agent.search()
-print(agent.solutions)
+#print(agent.solutions)
 
 
 agent.search_strategy = bfs
 agent.search()
-print(agent.solutions)
+#print(agent.solutions)
 
 agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
+
 
 agent.chessboard = board2
 agent.search()

@@ -1,16 +1,18 @@
 from bitarray import bitarray
 from enum import Enum, unique, auto
+from SubjectInterface import *
 import math
 import copy
 
 from ExtendedBitArray import ExtendedBitArray as ebs
 
 
-class Chessboard:
+class Chessboard(SubjectInterface):
 
     _rules = {}
 
     def __init__(self, rows=4, columns=4):
+        self._observers = []
         self._rows = rows
         self._columns = columns
         self._name = str(self._rows) + "x" + str(self._columns)
@@ -24,6 +26,12 @@ class Chessboard:
 
         self._generate_psuedo_attacks()
 
+    ##
+    #   Adds a Chesspiece to the board
+    #
+    #   @param position The position to put the piece
+    #   @param The chess piece
+
     def add_piece(self, position, piece):
         try:
             if not self._valid_board_space(position):
@@ -36,15 +44,28 @@ class Chessboard:
                 index = position - 1
                 self._board[index] = True
                 self._position[position] = piece
+                self.notify_observers()
 
         except ValueError:
             raise
 
+    ##
+    #   Removes a Chesspiece to the board
+    #
+    #   @param position The position of the piece
+    #   @param The chess piece
     def remove_piece(self, position):
         index = position-1
         self._position[position] = None
         self._location[index] = None
         self._board[index] = False
+
+    ##
+    #   Performs a capture move
+    #
+    #   Verifies move is legal. If so, attacker takes the place of target piece
+    #   @param source_position The attackers position
+    #   @param target_position The target position
 
     def capture(self, source_position, target_position):
         if self.is_valid_attack(source_position, target_position):
@@ -56,7 +77,9 @@ class Chessboard:
             self.remove_piece(source_position)
 
     ##
-    #   @return = List of Positions
+    #   Determines which board positions can make legal attacks
+    #
+    #   @return List of Positions
 
     def legal_attack_positions(self):
         attack_positions = []
@@ -68,19 +91,31 @@ class Chessboard:
                     attack_positions.append(position)
         return attack_positions
 
+    ##
+    #   Counts the number of pieces on the board
+    #
+    #   @return Number of pieces
     def num_of_pieces(self):
         return self._board.count()
 
+    ##
+    #   Checks if a piece can attack another
+    #
+    #   @param source_position The position of the attacker
+    #   @param target_position The position of the target
+    #
+    #   @return True/False
+    #
     def is_valid_attack(self, source_position, target_position):
         try:
             target_index = target_position - 1
             attacker = self._position.get(source_position)
             if attacker == None:
-                raise ValueError("Invalid Source Location")
+                raise ValueError("Invalid Source Location: " + str(source_position))
 
             victim = self._position.get(target_position)
             if victim == None:
-                raise ValueError("Invalid Target Location")
+                raise ValueError("Invalid Target Location" + str(target_position))
 
             if Piece.is_sliding_piece(attacker):
                 attack_board = self._valid_sliding_piece_attacks(source_position)
@@ -93,6 +128,8 @@ class Chessboard:
         except ValueError:
             raise
 
+    ##
+    #   Prints crude board representation
     def print_board(self):
         board_string = self._board.to01()[::-1]
 
@@ -102,31 +139,64 @@ class Chessboard:
             row_string = slice(start, end)
             print(board_string[row_string][::-1])
 
+    ##
+    #
     def print_pieces(self):
         for k,v in self._location.items():
             print(v.name, "at position", k)
 
+    ##
+    #   Determines all piece positions
+    #
+    #   @return List of all pieces and their associated board position
+    def pieces(self):
+        pieces_list = []
+        for k, v in self._position.items():
+            pieces_list.append((k, v))
+        return pieces_list
+
+    ##
+    #   Checks what piece is at a board position
+    #
+    #   @param position Board position to check
+    #   @param Return Chess Piece or None
     def position(self, position):
         return self._position.get(position)
 
-    def row(self, position_index):
+    ##
+    #   Determines what row a board position is in
+    #
+    #   @param position Board position
+    #   @return the row number
+    def row(self, position):
         try:
-            if not self._valid_board_space(position_index):
+            if not self._valid_board_space(position):
                 raise ValueError("Invalid Location")
             else:
-                index = self._num_of_spaces - (position_index -1)
+                index = self._num_of_spaces - (position -1)
                 return math.ceil(index / self._columns)
         except ValueError:
             raise
 
-    def column(self, position_index):
+    ##
+    #   Determines what column a board position is in
+    #
+    #   @param position Board position
+    #   @return the row number
+    def column(self, position):
         try:
-            if not self._valid_board_space(position_index):
+            if not self._valid_board_space(position):
                 raise ValueError("Invalid Location")
             else:
-                return ((position_index-1) % self._columns) +1
+                return ((position-1) % self._columns) +1
         except ValueError:
             raise
+
+    ##
+    #   Verifies a position is actually on the board
+    #
+    #   @param position Position to check
+    #   @return True/False
 
     def _valid_board_space(self, position):
         if position > 0 and position <= self._num_of_spaces:
@@ -134,16 +204,20 @@ class Chessboard:
         else:
             return False
 
+    ##
+    #   Caches legal pseudo-attacks at every board position
+    #   for Pawns, Kings, and Knights
     def _generate_psuedo_attacks(self):
         if not Chessboard._rules.get(self._name):
             self._generate_pawn_pseudo_attacks()
             self._generate_knight_pseudo_attacks()
-            self._generate_rook_pseudo_attacks()
-            self._generate_bishop_pseudo_attacks()
-            self._generate_queen_pseudo_attacks()
             self._generate_king_pseudo_attacks()
         Chessboard._rules[self._name] = True
 
+
+    ##
+    #   Determines all legal pseudo-attacks for pawns at
+    #   every board position
     def _generate_pawn_pseudo_attacks(self):
         pawn_psuedo_attacks = ebs(self._num_of_spaces)
 
@@ -160,6 +234,9 @@ class Chessboard:
                     pass
                 Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.PAWN, x)] = pawn_psuedo_attacks.copy()
 
+    ##
+    #   Determines all legal pseudo-attacks for knights at
+    #   every board position
     def _generate_knight_pseudo_attacks(self):
         knight_psuedo_attacks = ebs(self._num_of_spaces)
 
@@ -188,15 +265,9 @@ class Chessboard:
                         knight_psuedo_attacks[x - 2 * self._columns] = True
             Chessboard._rules[(self._name, Rules.PSEUDO_ATTACKS, Piece.KNIGHT, x)] = knight_psuedo_attacks.copy()
 
-    def _generate_rook_pseudo_attacks(self):
-        pass
-
-    def _generate_bishop_pseudo_attacks(self):
-        pass
-
-    def _generate_queen_pseudo_attacks(self):
-        pass
-
+    ##
+    #   Determines all legal pseudo-attacks for Kings at
+    #   every board position
     def _generate_king_pseudo_attacks(self):
         king_psuedo_attacks = ebs(self._num_of_spaces)
 
@@ -241,7 +312,12 @@ class Chessboard:
             return attacks
             pass
     ##
-    #   @ Returns EBS Board
+    #   Determines a positions legal attacks.
+    #
+    #   Wrapper for _valid_sliding_piece_attacks() & _valid_non_sliding_piece_attacks()
+    #
+    #   @param position Board position
+    #   @returns EBS Board indicating legal attacks
     def _valid_attacks(self, position):
         # Validation done in child method calls
         attacker =  self._position.get(position)
@@ -251,6 +327,11 @@ class Chessboard:
         else:
             return self._valid_non_sliding_piece_attacks(position)
 
+    ##
+    #   Determines legal attacks for Bishops, Queens, and Rooks
+    #
+    #   @param position Board position
+    #   @returns EBS Board indicating legal attacks
     def _valid_sliding_piece_attacks(self, position):
         try:
             attacker = self._position.get(position)
@@ -276,6 +357,11 @@ class Chessboard:
         except:
             raise
 
+    ##
+    #   Determines legal attacks for Kings, Knights, and Pawns
+    #
+    #   @param position Board position
+    #   @returns EBS Board indicating legal attacks
     def _valid_non_sliding_piece_attacks(self, position):
         try:
             if self._valid_board_space(position):
@@ -290,6 +376,11 @@ class Chessboard:
         except ValueError:
             raise
 
+    ##
+    #   Finds the rank (column) of a given position
+    #
+    #   @param position Board Position
+    #   @return EBS Board indicating rank
     def rank(self, position):
             if self._valid_board_space(position):
                 index = position - 1
@@ -301,6 +392,11 @@ class Chessboard:
                     index = (index + self._columns) % self._num_of_spaces
                 return rank_mask
 
+    ##
+    #   Finds the file (row) of a given position
+    #
+    #   @param position Board Position
+    #   @return EBS Board indicating file
     def file(self, position):
         try:
             if position < 1 or position > self._num_of_spaces:
@@ -318,6 +414,11 @@ class Chessboard:
         except ValueError:
             raise
 
+    ##
+    #   Finds the diagonal of a given position
+    #
+    #   @param position Board Position
+    #   @return EBS Board indicating diagonal
     def diagonal(self, position):
         if self._valid_board_space(position):
             index = position - 1
@@ -340,6 +441,11 @@ class Chessboard:
             return diagonal_mask
         pass
 
+    ##
+    #   Finds the anti-diagonal of a given position
+    #
+    #   @param position Board Position
+    #   @return EBS Board indicating anti-diagonal
     def anti_diagonal(self,position):
         if self._valid_board_space(position):
             index = position - 1
@@ -363,6 +469,12 @@ class Chessboard:
 
             return antidiagonal_mask
 
+    ##
+    #   Determines legal attacks on a given ray
+    #
+    #   @param position Board Position
+    #   @param ray The cardinal direction to check
+    #   @return EBS Board indicating diagonal
     def _get_ray_attack(self, position, ray):
         try:
             if not isinstance(ray, Rays):
@@ -448,6 +560,22 @@ class Chessboard:
                 return attacks
         except ValueError:
             raise
+
+
+    # Implement Subject Interface Methods
+
+    def register_observer(self, observer_):
+        self._observers.append(observer_)
+        print("added")
+
+
+    def unregister_observer(self, observer_):
+        self._observers.remove(observer_)
+
+
+    def notify_observers(self):
+        for observer in self._observers:
+            observer.update_observer(self)
 
 
 @unique

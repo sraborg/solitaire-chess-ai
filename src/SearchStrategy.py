@@ -92,7 +92,7 @@ class IterativeDeepeningSearch(SearchStrategy):
 
     _search_algorithm = DepthFirstSearch()
 
-    def search(self, board_, *args, iterations=8, **kargs):
+    def search(self, board_, *args, iterations=3, **kargs):
         possible_solutions = []
         move_sequence = []
         for x in range(iterations):
