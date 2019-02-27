@@ -2,14 +2,14 @@ import sys
 from PyQt5.QtCore import QSize, Qt, QPoint
 #from PyQt5.QtGui import *
 from PyQt5.QtGui import QIcon, QPixmap, QColor
-from PyQt5.QtWidgets import QAction, QPushButton, QDialog, QMdiArea, QVBoxLayout, QDialogButtonBox
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QAction, QPushButton, QDialog, QMdiArea, QVBoxLayout, QHBoxLayout, QDialogButtonBox
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit, QTextEdit, QComboBox, QFileDialog
 from PyQt5.QtWidgets import QGroupBox, QFormLayout, QGridLayout, QSpinBox
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 from Chessboard import Chessboard as cb
 from Chessboard import Piece, BoardEvent
 from SearchStrategy import *
-from SearchAgent import SearchAgent
+from SearchAgent import SearchAgent, SearchAgentEvent
 from ObserverInterface import *
 
 
@@ -21,6 +21,7 @@ class window(QMainWindow):
         # Add Models / Configure AI
         self.chessboard = None
         self.agent = SearchAgent()
+        self.agent.register_observer(SearchAgentEvent.SEARCH_COMPLETE, self, self.update_observer)
         self.position = {}
 
         # Icons
@@ -39,13 +40,19 @@ class window(QMainWindow):
     #   Draws Window GUI
 
     def initUI(self):
-        self.setGeometry(50, 50, 800, 500)
+        self.setGeometry(50, 50, 950, 500)
         self.setWindowTitle('Solitare Chess AI')
+        self.chessboard = cb(4,4)
+        self.chessboard.register_observer(BoardEvent.CHANGE, self, self.update_observer)
+
         # self.setWindowIcon(QIcon('pic.png'))
 
         self.mdi = QMdiArea()
+        self.mainLayout = QHBoxLayout()
+        self.mdi.setLayout(self.mainLayout)
+        self.setCentralWidget(self.mdi)
 
-
+        # MenuBar
         newAction = QAction('&New Board', self)
         newAction.setShortcut('Ctrl+N')
         newAction.triggered.connect(self._new_board)
@@ -76,6 +83,7 @@ class window(QMainWindow):
         exitAct.setShortcut('Ctrl+Q')
         exitAct.triggered.connect(self.close_application)
 
+        # Toolbar
         search_combo_box = QComboBox(self)
         search_combo_box.addItem('Depth First Search')
         search_combo_box.addItem('Breadth First Search')
@@ -87,23 +95,53 @@ class window(QMainWindow):
         search_btn = QPushButton("Search!", self)
         search_btn.clicked.connect(self._search)
         search_btn.resize(search_btn.minimumSizeHint())
-        #btn.move(200, 5)
 
-        self.toolbar = self.addToolBar('Search')
-        self.toolbar.addWidget(search_combo_box)
-        self.toolbar.addWidget(search_btn)
+        toolbar = self.addToolBar('Search')
+        toolbar.addWidget(search_combo_box)
+        toolbar.addWidget(search_btn)
 
-        self.chessboard_table_widget = QTableWidget()
-        self.layout.addWidget(self.chessboard_table_widget)
-        self.setCentralWidget(self.mdi)
-        self.mdi.setLayout(self.layout)
+
+        # Stats Box
+        right_widget = QWidget()
+        right_panel = QVBoxLayout()
+        right_widget.setLayout(right_panel)
+
+        #stats_box = QGroupBox("Stats")
+        #stats_layout = QFormLayout()
+
+        '''
+        self.depth_field = QLineEdit()
+        self.depth_field.setReadOnly(True)
+        self.expanded_field = QLineEdit()
+        self.expanded_field.setReadOnly(True)
+        '''
+
+        self.solution_field = QTextEdit()
+        self.solution_field.setReadOnly(True)
+        right_panel.addWidget(self.solution_field)
+
+
+
+
+        self.chessboard_table_widget = self._create_board_widget(4,4)
+        self.chessboard_table_widget.setMinimumWidth(600)
+
+        self.mainLayout.addWidget(self.chessboard_table_widget)
+        self.resize(self.sizeHint())
+
+
+
+        self.chess_board_layout = QVBoxLayout()
+        self.mainLayout.addLayout(self.chess_board_layout)
+        self.mainLayout.addWidget(right_widget)
+
+
         self.show()
 
     ##
     #   Signal: Responds to File action "new board"
     #   Prompts for dimensions and then creates board based on response
     def _new_board(self):
-        # https://stackoverflow.com/questions/17512542/getting-multiple-inputs-from-qinputdialog-in-qtcreator
         rows = 3
         columns = 3
 
@@ -111,26 +149,26 @@ class window(QMainWindow):
 
         if dialog:
             rows, columns = dialog.getResults()
-            #print(rows, columns)
             new_board = cb(rows, columns)
             new_board.register_observer(BoardEvent.CHANGE, self, self.update_observer)
             self.chessboard = new_board
-            self._create_board(rows, columns)
+            self.chessboard_table_widget = self._create_board_widget(rows, columns)
 
     ##
     #   Draws Board and Stores Positioning information
 
-    def _create_board(self, rows_, columns_):
-        self.chessboard_table_widget.setParent(None) # Remove Old
-        self.chessboard_table_widget = QTableWidget()
-        self.chessboard_table_widget.setRowCount(rows_)
-        self.chessboard_table_widget.setColumnCount(columns_)
-        self.chessboard_table_widget.horizontalHeader().setDefaultSectionSize(125);
-        self.chessboard_table_widget.verticalHeader().setDefaultSectionSize(125);
-        self.chessboard_table_widget.setIconSize(QSize(100,100))
-        self.chessboard_table_widget.horizontalHeader().hide()
-        self.chessboard_table_widget.verticalHeader().hide()
-        self.chessboard_table_widget.itemClicked.connect(self._chessboard_click)
+    def _create_board_widget(self, rows_, columns_):
+        #self.chessboard_table_widget.setParent(None) # Remove Old
+
+        chessboard_table_widget = QTableWidget()
+        chessboard_table_widget.setRowCount(rows_)
+        chessboard_table_widget.setColumnCount(columns_)
+        chessboard_table_widget.horizontalHeader().setDefaultSectionSize(125);
+        chessboard_table_widget.verticalHeader().setDefaultSectionSize(125);
+        chessboard_table_widget.setIconSize(QSize(100,100))
+        chessboard_table_widget.horizontalHeader().hide()
+        chessboard_table_widget.verticalHeader().hide()
+        chessboard_table_widget.itemClicked.connect(self._chessboard_click)
 
         # Create Table Cells
         i = 0
@@ -146,18 +184,15 @@ class window(QMainWindow):
                     if not i % 2:
                         cell.setBackground(QColor(150, 150, 150))
 
-                self.chessboard_table_widget.setItem(r, c, cell)
+                chessboard_table_widget.setItem(r, c, cell)
                 i = i + 1
-
-        self.layout.addWidget(self.chessboard_table_widget)
-        self.resize(self.sizeHint())
 
         # Hash Positions
         for c in range(columns_):
             for r in range(rows_):
                 # Find "index" from Row / Column notation
-                max_rows = self.chessboard_table_widget.rowCount()
-                max_columns = self.chessboard_table_widget.columnCount()
+                max_rows = chessboard_table_widget.rowCount()
+                max_columns = chessboard_table_widget.columnCount()
                 row2 = max_rows - r - 1
                 position = c + row2 * max_columns + 1
 
@@ -166,6 +201,8 @@ class window(QMainWindow):
                 #print('key', key, 'position', position)
                 self.position[key] = position
                 self.position[position] = (r,c)
+
+        return chessboard_table_widget
 
     def _load_board(self):
         name, _ = QFileDialog.getOpenFileName(self, 'Open File', options=QFileDialog.DontUseNativeDialog)
@@ -180,11 +217,11 @@ class window(QMainWindow):
 
     def _set_search_strategy(self, strategy_):
         if strategy_ == 0:
-            self.agent.strategy = DepthFirstSearch()
+            self.agent.search_strategy = DepthFirstSearch()
         elif strategy_ == 1:
-            self.agent.strategy = BreadthFirstSearch()
+            self.agent.search_strategy = BreadthFirstSearch()
         elif strategy_ == 2:
-            self.agent.strategy = IterativeDeepeningSearch()
+            self.agent.search_strategy = IterativeDeepeningSearch()
 
     ##
     #   Runs Search on Current Board
@@ -192,7 +229,6 @@ class window(QMainWindow):
     def _search(self):
         self.agent.chessboard = self.chessboard
         self.agent.search()
-        print(self.agent.solutions)
 
     ##
     #   Signal: Responds to "Quit Action"
@@ -207,7 +243,6 @@ class window(QMainWindow):
 
     def _chessboard_click(self, item_):
 
-
         #max_rows = self.chessboard_table_widget.rowCount()
         #max_columns = self.chessboard_table_widget.columnCount()
 
@@ -221,7 +256,6 @@ class window(QMainWindow):
         key = str(row) + 'x' + str(column)
         position = self.position.get(key)
         item = self.chessboard_table_widget.item(row, column)
-        print(item)
 
         dialog = AddRemovePieceDialog(self)
 
@@ -249,9 +283,6 @@ class window(QMainWindow):
             self.update_board_position(piece, position)
 
     def update_board_position(self, piece, position):
-        print(position)
-        print(self.position.get(position))
-
         r, c = self.position.get(position)
         item = self.chessboard_table_widget.item(r,c)
 
@@ -270,10 +301,29 @@ class window(QMainWindow):
         elif piece is None:
             item.setIcon(QIcon())
 
-    def update_observer(self, subject_):
-        self.update_board(self.chessboard.pieces())
-        print(self.chessboard.pieces())
-        pass
+    def update_observer(self, message):
+        if message is BoardEvent.CHANGE:
+            self.update_board(self.chessboard.pieces())
+        elif message is SearchAgentEvent.SEARCH_COMPLETE:
+            solution_text = self.agent.algorithm + "\n"
+            if self.agent.solutions:
+                for solution in self.agent.solutions:
+                    depth, expanded, steps = solution
+
+                    solution_text = solution_text + "Solution" + " (Depth: " + str(depth) + " | Nodes Expanded: " + str(expanded) + ")\n"
+                    for step in enumerate(steps):
+                        i, s = step
+                        i = i+1
+                        piece, source_position, target_position = s
+                        piece = piece.name
+                        source_position = str(source_position)
+                        target_position = str(target_position)
+                        solution_text = solution_text + "Step " + str(i) + ": " + piece + " from " + source_position + " to " + target_position + "\n"
+
+                    solution_text = solution_text + "\n\n"
+            else:
+                solution_text = solution_text + "No Solution Found"
+            self.solution_field.setText(solution_text)
 
 ##
 #   Class

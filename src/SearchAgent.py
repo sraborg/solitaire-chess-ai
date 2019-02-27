@@ -1,14 +1,20 @@
 from SearchStrategy import *
+from SubjectInterface import *
 from Chessboard import Chessboard as cb
 from Chessboard import Piece
+from enum import Enum, unique, auto
 
 
-class SearchAgent:
+class SearchAgent(SubjectInterface):
 
     def __init__(self):
+        super(SearchAgent, self).__init__()
         self.solutions = []
-        self._search_strategy = DepthFirstSearch();
+        self._search_strategy = DepthFirstSearch()
+        self.algorithm = self._search_strategy.name
         self._chessboard = None
+        self.results = None
+
 
     @property
     def chessboard(self):
@@ -34,6 +40,8 @@ class SearchAgent:
                 raise ValueError("Invalid Search Agent")
 
             self._search_strategy = value
+            self.algorithm = self._search_strategy.name
+
         except ValueError:
             raise
 
@@ -46,6 +54,9 @@ class SearchAgent:
 
             gamestate = self.chessboard
             self.solutions = self.search_strategy.search(gamestate)
+            #message = (self.search_strategy.name, self.search_strategy.depth, self.search_strategy.expanded, self.solutions)
+            self.notify_observers(SearchAgentEvent.SEARCH_COMPLETE, SearchAgentEvent.SEARCH_COMPLETE)
+
         except Exception as e:
             print(e)
             raise
@@ -53,7 +64,12 @@ class SearchAgent:
     def print_solution(self):
         print(self.solutions)
 
+@unique
+class SearchAgentEvent(Enum):
+    SEARCH_COMPLETE = auto()
 
+
+'''
 # PUZZLE 1
 board = cb()
 board.add_piece(3, Piece.PAWN)
@@ -92,19 +108,21 @@ board4.add_piece(16, Piece.ROOK)
 
 
 agent = SearchAgent()
-#
 
-#print("=== PUZZLE 1 ===")
+print("=== PUZZLE 1 ===")
 
 
 bfs = BreadthFirstSearch()
 ids = IterativeDeepeningSearch()
 
 
+board.print_board()
 agent.chessboard = board
+
 agent.search()
 print(agent.solutions)
 print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
+
 
 agent.search_strategy = bfs
 agent.search()
@@ -116,6 +134,8 @@ agent.search()
 print(agent.solutions)
 print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
+
+board2.print_board()
 agent.chessboard = board2
 agent.search()
 print(agent.solutions)
@@ -131,6 +151,8 @@ agent.search()
 print(agent.solutions)
 print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
+
+board3.print_board()
 agent.chessboard = board3
 agent.search()
 print(agent.solutions)
@@ -147,6 +169,7 @@ agent.search()
 print(agent.solutions)
 print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
 
+board4.print_board()
 agent.chessboard = board4
 agent.search()
 print(agent.solutions)
@@ -163,3 +186,5 @@ agent.search_strategy = ids
 agent.search()
 print(agent.solutions)
 print("depth: ", agent.search_strategy.depth, "expanded: ", agent.search_strategy.expanded)
+'''
+

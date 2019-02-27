@@ -15,8 +15,13 @@ class SearchStrategy(abc.ABC):
 
 class DepthFirstSearch(SearchStrategy):
 
+    def __init__(self):
+        super(DepthFirstSearch, self).__init__()
+        self.name = "Depth First Search"\
+
     def search(self, board_, depth=0, *args, **kargs):
         solutions = []
+
         expanded_ = 0
         # DFS Structures
         stack = []
@@ -25,10 +30,7 @@ class DepthFirstSearch(SearchStrategy):
         while stack:
             board, move_sequence_, depth = stack.pop()
             pieces = board.num_of_pieces()
-            expanded_ = expanded_ + 1
 
-            if not solutions:
-                self.expanded = expanded_ + 1
             # Check For Win Condition
             # Possible Solution Found
             if pieces < 2 and depth:
@@ -36,12 +38,19 @@ class DepthFirstSearch(SearchStrategy):
                 # Save Depth
                 if not solutions:
                     self.depth = depth
-                solutions.append(move_sequence_)
+                    self.expanded = expanded_
 
-                # Make Sure "max_iterations" Condition is met
-                if depth is kargs.get("max_iterations"):
-                    break
+                    if kargs.get("Full Search") is True:
+                        break
+                solutions.append((self.depth, self.expanded, move_sequence_))
 
+            # Make Sure "max_iterations" Condition is met
+            if kargs.get("max_iterations") is not None and depth >= kargs.get("max_iterations"):
+                self.depth = depth
+                self.expanded = expanded_
+                break
+
+            expanded_ = expanded_ + 1
 
             if kargs.get("max_iterations") is None or depth <= kargs.get("max_iterations"):
 
@@ -65,6 +74,10 @@ class DepthFirstSearch(SearchStrategy):
 
 class BreadthFirstSearch(SearchStrategy):
 
+    def __init__(self):
+        super(BreadthFirstSearch, self).__init__()
+        self.name = "Breadth First Search"
+
     def search(self, board_, depth=0, **kargs):
 
         solutions = []
@@ -77,22 +90,24 @@ class BreadthFirstSearch(SearchStrategy):
             board, move_sequence_, depth = queue.pop()
             pieces = board.num_of_pieces()
 
-            expanded_ = expanded_ + 1
             if not solutions:
-                self.expanded = expanded_ + 1
 
-            # Check For Win Condition
-            # Possible Solution Found
-            if pieces < 2 and depth:
-                # Save Depth
-                if not solutions:
-                    self.depth = depth
-                solutions.append(move_sequence_)
+                # Check For Win Condition
+                # Possible Solution Found
+                if pieces < 2 and depth:
+                    # Save Depth
+                    if not solutions:
+                        self.depth = depth
+                        self.expanded = expanded_
+                    solutions.append((self.depth, self.expanded, move_sequence_))
 
-                # Make Sure "max_iterations" Condition is met
-                if depth is kargs.get("max_iterations"):
-                    break
+                    # Make Sure "max_iterations" Condition is met
+                    if depth is kargs.get("max_iterations"):
+                        self.depth = depth
+                        self.expanded = expanded_
+                        break
 
+            expanded_ = expanded_ + 1
             # Queue Up Remaining
             attack_positions = board.legal_attack_positions()
             for position in attack_positions:  # Not Empty
@@ -112,17 +127,24 @@ class BreadthFirstSearch(SearchStrategy):
 
 class IterativeDeepeningSearch(SearchStrategy):
 
-
-    _search_algorithm = DepthFirstSearch()
+    def __init__(self):
+        super(IterativeDeepeningSearch, self).__init__()
+        self._search_algorithm = DepthFirstSearch()
+        self.name = "Iterative Deepening Search"
 
     def search(self, board_, *args, iterations=100, **kargs):
-        possible_solutions = []
+        solutions = []
+
+        expanded_ = 0
         move_sequence = []
         for x in range(iterations):
-            possible_solutions = possible_solutions + self._search_algorithm.search(board_, move_sequence, possible_solutions, max_iterations=x)
-            self.expanded = self.expanded + self._search_algorithm.expanded
+            solutions = solutions + self._search_algorithm.search(board_, move_sequence, solutions, max_iterations=x)
+            expanded_ = expanded_ + self._search_algorithm.expanded
 
-            if possible_solutions:
+            if solutions:
                 self.depth = self._search_algorithm.depth
+                self.expanded = expanded_
+                solution = solutions[0][2]
+                solutions[0] = (self.depth, self.expanded, solution)
                 break
-        return possible_solutions
+        return solutions

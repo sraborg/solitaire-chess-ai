@@ -12,9 +12,9 @@ class Chessboard(SubjectInterface):
     _rules = {}
 
     def __init__(self, rows=4, columns=4):
+        super(Chessboard, self).__init__()
         self._observers = {}
-        self._events = {}
-        self._events[BoardEvent.CHANGE] = {}
+        #self._events[BoardEvent.CHANGE] = {}
 
         self._rows = rows
         self._columns = columns
@@ -47,7 +47,7 @@ class Chessboard(SubjectInterface):
                 index = position - 1
                 self._board[index] = True
                 self._position[position] = piece
-                self.notify_observers(BoardEvent.CHANGE)
+                self.notify_observers(BoardEvent.CHANGE,BoardEvent.CHANGE)
 
         except ValueError:
             raise
@@ -62,6 +62,7 @@ class Chessboard(SubjectInterface):
         self._position[position] = None
         self._location[index] = None
         self._board[index] = False
+        self.notify_observers(BoardEvent.CHANGE, BoardEvent.CHANGE)
 
     ##
     #   Performs a capture move
@@ -386,6 +387,11 @@ class Chessboard(SubjectInterface):
     #   @return EBS Board indicating rank
     def rank(self, position):
             if self._valid_board_space(position):
+
+                # Check For Cached Answer
+                if self._rules.get((self._name, Rules.RANK, position)):
+                    return self._rules.get((self._name, Rules.RANK, position))
+
                 index = position - 1
                 rank_mask = ebs(self._num_of_spaces)
                 rank_mask.setall(0)
@@ -393,6 +399,8 @@ class Chessboard(SubjectInterface):
                 while rank_mask[index] == False:
                     rank_mask[index] = True
                     index = (index + self._columns) % self._num_of_spaces
+
+                self._rules[(self._name, Rules.RANK, position)] = rank_mask       # Cache Result
                 return rank_mask
 
     ##
@@ -401,21 +409,23 @@ class Chessboard(SubjectInterface):
     #   @param position Board Position
     #   @return EBS Board indicating file
     def file(self, position):
-        try:
-            if position < 1 or position > self._num_of_spaces:
-                raise ValueError("Invalid Position")
-            else:
-                index = position - 1
-                row = math.floor(index / self._columns)
-                rank_mask = ebs(self._num_of_spaces)
-                rank_mask.setall(0)
-                start = row * self._columns
-                for i in range(self._columns):
-                    rank_mask[start + i] = True
-                    index = (index + 1) % self._num_of_spaces
-                return rank_mask
-        except ValueError:
-            raise
+        if self._valid_board_space(position):
+
+            # Check For Cached Answer
+            if self._rules.get((self._name, Rules.FILE, position)):
+                return self._rules.get((self._name, Rules.FILE, position))
+
+            index = position - 1
+            row = math.floor(index / self._columns)
+            file_mask = ebs(self._num_of_spaces)
+            file_mask.setall(0)
+            start = row * self._columns
+            for i in range(self._columns):
+                file_mask[start + i] = True
+                index = (index + 1) % self._num_of_spaces
+
+            self._rules[(self._name, Rules.FILE, position)] = file_mask  # Cache Result
+            return file_mask
 
     ##
     #   Finds the diagonal of a given position
@@ -424,6 +434,11 @@ class Chessboard(SubjectInterface):
     #   @return EBS Board indicating diagonal
     def diagonal(self, position):
         if self._valid_board_space(position):
+
+            # Check For Cached Answer
+            if self._rules.get((self._name, Rules.DIAGONAL, position)):
+                return self._rules.get((self._name, Rules.DIAGONAL, position))
+
             index = position - 1
             diagonal_mask = ebs(self._num_of_spaces)
             diagonal_mask.setall(0)
@@ -441,6 +456,8 @@ class Chessboard(SubjectInterface):
                 diagonal_mask[index] = True
                 index = (index - self._columns) - 1
             '''
+
+            self._rules[(self._name, Rules.DIAGONAL, position)] = diagonal_mask  # Cache Result
             return diagonal_mask
         pass
 
@@ -451,6 +468,11 @@ class Chessboard(SubjectInterface):
     #   @return EBS Board indicating anti-diagonal
     def anti_diagonal(self,position):
         if self._valid_board_space(position):
+
+            # Check For Cached Answer
+            if self._rules.get((self._name, Rules.ANTI_DIAGONAL, position)):
+                return self._rules.get((self._name, Rules.ANTI_DIAGONAL, position))
+
             index = position - 1
             antidiagonal_mask = ebs(self._num_of_spaces)
             antidiagonal_mask.setall(0)
@@ -470,6 +492,7 @@ class Chessboard(SubjectInterface):
                 antidiagonal_mask[index] = True
                 index = (index + self._columns) - 1
 
+                self._rules[(self._name, Rules.ANTI_DIAGONAL, position)] = antidiagonal_mask  # Cache Result
             return antidiagonal_mask
 
     ##
@@ -567,22 +590,12 @@ class Chessboard(SubjectInterface):
 
     # Implement Subject Interface Methods
 
-    def register_observer(self, event, observer_, callback):
-
-        self._event_observers(event)[observer_] = callback
-        print("added")
-
-    def unregister_observer(self, event, observer_):
-        del self._event_observers(event)[observer_]
-
-    def notify_observers(self, event, message=None):
-        self._event_observers(event)
-        for observer, callback in self._event_observers(event).items():
-            callback(message)
-
-    def _event_observers(self, event):
-        return self._events[event]
-
+    def __deepcopy__(self, memodict={}):
+        nb = Chessboard(self._rows, self._columns)
+        nb._board = copy.deepcopy(self._board)
+        nb._position = copy.deepcopy(self._position)
+        nb._generate_psuedo_attacks()
+        return nb
 @unique
 class BoardEvent(Enum):
     CHANGE = auto()
@@ -610,6 +623,10 @@ class Piece(Enum):
 @unique
 class Rules(Enum):
     PSEUDO_ATTACKS = auto()
+    RANK = auto()
+    FILE = auto()
+    DIAGONAL = auto()
+    ANTI_DIAGONAL = auto()
 
 @unique
 class Rays(Enum):
